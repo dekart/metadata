@@ -37,7 +37,8 @@ module Metadata
   
   class Base
     DEFAULT_OPTIONS = {
-      :join => " - "
+      :encoding => "utf-8",
+      :join     => " - "
     }
     
     attr_accessor :title, :description, :keywords, :javascripts, :stylesheets
@@ -74,9 +75,22 @@ module Metadata
     
     def to_html(template)
       returning "" do |html|
+        html << template.tag(:meta, 
+          "http-equiv"  => "Content-Type", 
+          :content      => "text/html; charset=#{@options[:encoding]}"
+        ) if @options[:encoding].is_a?(String)
+        
         html << template.content_tag(:title, @title * @options[:join]) if @title.any?
-        html << template.tag(:meta, :name => :description, :content => @description * @options[:join]) if @description.any?
-        html << template.tag(:meta, :name => :keywords, :content => @keywords * @options[:join]) if @keywords.any?
+        
+        html << template.tag(:meta, 
+          :name     => :description, 
+          :content  => @description * @options[:join]
+        ) if @description.any?
+        
+        html << template.tag(:meta, 
+          :name     => :keywords, 
+          :content  => @keywords * @options[:join]
+        ) if @keywords.any?
         
         html << @stylesheets.to_html(template)
         
