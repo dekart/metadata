@@ -1,43 +1,41 @@
 module Metadata
-  class Stylesheet
-    include ERB::Util
-    include ActionView::Helpers::TagHelper
-    include ActionView::Helpers::AssetTagHelper
-
-    def initialize(*options)
-      @value = options
-    end
-    
-    def options
-      @value.dup.extract_options!
-    end
-    
-    def to_html
-      html = stylesheet_link_tag(*@value)
+  class Stylesheets < Array
+    def to_html(template)
+      returning "" do |html|
+        self.each do |value|
+        
+          options = value.is_a?(Array) && value.last.is_a?(Hash) ? value.last : {}
+        
+          style = template.stylesheet_link_tag(*value)
       
-      return "<!--[if ie]>#{html}<![endif]-->" if options[:browser] == :ie
-      return javascript_tag("if(window.opera){document.write('#{html}')}") if options[:browser] == :opera
+          case options[:browser]
+          when :ie
+            html << "<!--[if ie]>#{style}<![endif]-->"
+          when :opera
+            html << template.javascript_tag("if(window.opera){document.write('#{style}')}")
+          else
+            html << style
+          end
+        end
+      end
+    end
+    
+    def to_ary
+      Array.new(self)
     end
   end
   
-  class Javascript
-    include ERB::Util
-    include ActionView::Helpers::TagHelper
-    include ActionView::Helpers::AssetTagHelper
-    
-    def initialize(*options)
-      @value = options
-    end
-    
-    def to_html
-      return javascript_tag(@value)
+  class Javascripts < Array
+    def to_html(template)
+      returning "" do |html|
+        self.each do |value|
+          html << template.javascript_include_tag(value)
+        end
+      end
     end
   end
   
   class Base
-    include ERB::Util
-    include ActionView::Helpers::TagHelper
-    
     DEFAULT_OPTIONS = {
       :join => " - "
     }
@@ -47,46 +45,42 @@ module Metadata
     def initialize(options = {})
       options.symbolize_keys!
       
-      %w(title description keywords stylesheets javascripts).each do |attr|
+      [:title, :description, :keywords].each do |attr|
         value = options.delete(attr.to_sym)
 
-        self.send("#{attr}=", value.kind_of?(Symbol) ? [value] : value.to_a)
+        self.send("#{attr}=", value.is_a?(Array) ? value : [value].compact)
       end
       
+      @stylesheets = Stylesheets.new(
+        options[:stylesheets].is_a?(Array) ? options[:stylesheets] : [options[:stylesheets]].compact
+      )
+      options.delete(:stylesheets)
+      
+      @javascripts = Javascripts.new(
+        options[:javascripts].is_a?(Array) ? options[:javascripts] : [options[:javascripts]].compact
+      )
+      options.delete(:javascripts)
+      
       @options = DEFAULT_OPTIONS.merge(options)
-    end
-    
-    def stylesheets=(values)
-      @stylesheets = values.collect {|value| Stylesheet.new(value) }
-    end
-    
-    def javascripts=(values)
-      @stylesheets = values.collect {|value| Stylesheet.new(value) }
     end
 
     def merge(other_meta)
       other_meta = self.class.new(other_meta) if other_meta.kind_of?(Hash)
       
-      self.title        += other_meta.title
-      self.description  += other_meta.description
-      self.keywords     += other_meta.description
-      self.stylesheets  += other_meta.stylesheets
-      self.javascripts  += other_meta.javascripts
+      [:title, :description, :keywords, :javascripts, :stylesheets].each do |value|
+        send(value).push(*other_meta.send(value)) if other_meta.send(value).any?
+      end
     end
     
-    def to_html
+    def to_html(template)
       returning "" do |html|
-        html << content_tag(:title, @title * @options[:join]) if @title.any?
-        html << tag(:meta, :name => :description, :content => @description * @options[:join]) if @description.any?
-        html << tag(:meta, :name => :keywords, :content => @keywords * @options[:join]) if @keywords.any?
+        html << template.content_tag(:title, @title * @options[:join]) if @title.any?
+        html << template.tag(:meta, :name => :description, :content => @description * @options[:join]) if @description.any?
+        html << template.tag(:meta, :name => :keywords, :content => @keywords * @options[:join]) if @keywords.any?
         
-        @stylesheets.each do |stylesheet|
-          html << stylesheet.to_html
-        end
+        html << @stylesheets.to_html(template)
         
-        @javascripts.each do |javascript|
-          html << javascript.to_html
-        end
+        html << @javascripts.to_html(template)
       end
     end
     
