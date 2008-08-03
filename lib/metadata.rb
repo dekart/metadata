@@ -2,7 +2,7 @@ module Metadata
   class Stylesheets < Array
     def to_html(template)
       returning "" do |html|
-        self.each do |value|
+        self.uniq.each do |value|
         
           options = value.is_a?(Array) && value.last.is_a?(Hash) ? value.last : {}
         
@@ -28,7 +28,7 @@ module Metadata
   class Javascripts < Array
     def to_html(template)
       returning "" do |html|
-        self.each do |value|
+        self.uniq.each do |value|
           html << template.javascript_include_tag(value)
         end
       end
