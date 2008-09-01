@@ -39,9 +39,9 @@ module Metadata
     def to_html(template)
       returning "" do |html|
         self.uniq.each do |value|
-          html << template.tag(
+          html << template.tag(:link,
             :rel    => :alternate,
-            :type   => Mime::Type.lookup_by_extension(value[:format]),
+            :type   => Mime::Type.lookup_by_extension(value[:format].to_s),
             :title  => value[:name],
             :href   => value[:url]
           )
