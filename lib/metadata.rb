@@ -35,13 +35,28 @@ module Metadata
     end
   end
   
+  class Feeds < Array
+    def to_html(template)
+      returning "" do |html|
+        self.uniq.each do |value|
+          html << template.tag(
+            :rel    => :alternate,
+            :type   => Mime::Type.lookup_by_extension(value[:format]),
+            :title  => value[:name],
+            :href   => value[:url]
+          )
+        end
+      end
+    end
+  end
+  
   class Base
     DEFAULT_OPTIONS = {
       :encoding => "utf-8",
       :join     => " - "
     }
     
-    attr_accessor :title, :description, :keywords, :javascripts, :stylesheets
+    attr_accessor :title, :description, :keywords, :javascripts, :stylesheets, :feeds
     
     def initialize(options = {})
       options.symbolize_keys!
@@ -61,6 +76,11 @@ module Metadata
         options[:javascripts].is_a?(Array) ? options[:javascripts] : [options[:javascripts]].compact
       )
       options.delete(:javascripts)
+
+      @feeds = Feeds.new(
+        options[:feeds].is_a?(Array) ? options[:feeds] : [options[:feeds]].compact
+      )
+      options.delete(:feeds)
       
       @options = DEFAULT_OPTIONS.merge(options)
     end
@@ -68,7 +88,7 @@ module Metadata
     def merge(other_meta)
       other_meta = self.class.new(other_meta) if other_meta.kind_of?(Hash)
       
-      [:title, :description, :keywords, :javascripts, :stylesheets].each do |value|
+      [:title, :description, :keywords, :javascripts, :stylesheets, :feeds].each do |value|
         send(value).push(*other_meta.send(value)) if other_meta.send(value).any?
       end
     end
@@ -93,8 +113,8 @@ module Metadata
         ) if @keywords.any?
         
         html << @stylesheets.to_html(template)
-        
         html << @javascripts.to_html(template)
+        html << @feeds.to_html(template)
       end
     end
     
