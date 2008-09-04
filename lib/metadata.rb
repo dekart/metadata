@@ -41,7 +41,9 @@ module Metadata
         self.uniq.each do |value|
           html << template.tag(:link,
             :rel    => :alternate,
-            :type   => Mime::Type.lookup_by_extension(value[:format].to_s),
+            :type   => Mime::Type.lookup_by_extension(
+              value[:format] || value[:url].split(".").last
+            ),
             :title  => value[:name],
             :href   => value[:url]
           )
