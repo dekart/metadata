@@ -42,7 +42,7 @@ module Metadata
           html << template.tag(:link,
             :rel    => :alternate,
             :type   => Mime::Type.lookup_by_extension(
-              value[:format] || value[:url].split(".").last
+              (value[:format] || value[:url].split(".").last).to_s
             ),
             :title  => value[:name],
             :href   => value[:url]
