@@ -93,6 +93,8 @@ module Metadata
       [:title, :description, :keywords, :javascripts, :stylesheets, :feeds].each do |value|
         send(value).push(*other_meta.send(value)) if other_meta.send(value).any?
       end
+
+      return self
     end
     
     def to_html(template)
