@@ -61,6 +61,7 @@ module Metadata
     attr_accessor :title, :description, :keywords, :javascripts, :stylesheets, :feeds
     
     def initialize(options = {})
+      options = options.dup
       options.symbolize_keys!
       
       [:title, :description, :keywords].each do |attr|
