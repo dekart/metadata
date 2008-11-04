@@ -52,13 +52,23 @@ module Metadata
     end
   end
   
+  class Additions < Array
+    def to_html(template)
+      returning "" do |html|
+        self.uniq.each do |value|
+          html << value
+        end
+      end
+    end
+  end
+
   class Base
     DEFAULT_OPTIONS = {
       :encoding => "utf-8",
       :join     => " - "
     }
     
-    attr_accessor :title, :description, :keywords, :javascripts, :stylesheets, :feeds
+    attr_accessor :title, :description, :keywords, :javascripts, :stylesheets, :feeds, :additions
     
     def initialize(options = {})
       options = options.dup
@@ -85,13 +95,18 @@ module Metadata
       )
       options.delete(:feeds)
       
+      @additions = Additions.new(
+        options[:additions].is_a?(Array) ? options[:additions] : [options[:additions]].compact
+      )
+      options.delete(:additions)
+
       @options = DEFAULT_OPTIONS.merge(options)
     end
 
     def merge(other_meta)
       other_meta = self.class.new(other_meta) if other_meta.kind_of?(Hash)
       
-      [:title, :description, :keywords, :javascripts, :stylesheets, :feeds].each do |value|
+      [:title, :description, :keywords, :javascripts, :stylesheets, :feeds, :additions].each do |value|
         send(value).push(*other_meta.send(value)) if other_meta.send(value).any?
       end
 
@@ -116,10 +131,10 @@ module Metadata
           :name     => :keywords, 
           :content  => @keywords * @options[:join]
         ) if @keywords.any?
-        
-        html << @stylesheets.to_html(template)
-        html << @javascripts.to_html(template)
-        html << @feeds.to_html(template)
+
+        [@stylesheets, @javascripts, @feeds, @additions].each do |attr|
+          html << attr.to_html(template)
+        end
       end
     end
     
